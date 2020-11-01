@@ -1,0 +1,66 @@
+from lab4 import *
+import cv2
+import numpy as np
+import time
+
+def mean_shift_test():
+    # load frames
+    path = "BlurBody/img/"
+    frames = load_frames_rgb(path)
+
+    # first frame in the video
+    frame1 = frames[0]
+
+    # windows position for human body in frame 1.
+    x, y, w, h = 400, 48, 87, 319
+    # track_window = (x, y, w, h)
+    # get region of interest in the frame
+    roi = frame1[y:y + h, x:x + w]
+    # convert to hsv color space
+    hsv_roi = cv2.cvtColor(roi, cv2.COLOR_RGB2HSV)
+
+    """ PARAMETERS HERE """
+    # Histogram masking parameters.
+    thresh_value1 = 80.
+    thresh_value2 = 20.
+    # index of channel for which we calculate Histogram.
+    # 0:hue, 1:saturation, 2:lightness
+    channel = 1
+    """ PARAMETERS HERE """
+
+    mask = cv2.inRange(hsv_roi, np.array((0., thresh_value1, thresh_value2,)), np.array((180., 255., 255.,)))
+    roi_hist = cv2.calcHist([hsv_roi], [channel], mask, [180], [0, 180])
+    # roi_hist_nomask = cv2.calcHist([hsv_roi], [channel], None, [180], [0, 180])
+
+    # hsv_frame1 = cv2.cvtColor(frame1, cv2.COLOR_RGB2HSV)
+    # dst = cv2.calcBackProject([hsv_frame1], [channel], roi_hist, [0, 180], 1)
+    # Initailze bounding box
+    bboxes = []
+
+    # tracking windows position for human body in frame 1.
+    track_window = (x, y, w, h)
+
+    print("performing mean shift")
+
+    for frame in frames[:1]:
+        hsv = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)
+        dst = cv2.calcBackProject([hsv], [channel], roi_hist, [0, 180], 1)
+        # c = np.reshape(dst, (-1, 1))
+
+        # apply meanshift to get the optimal tracking window location(mode)
+        track_window = meanShift(dst, track_window, max_iter=10, stop_thresh=0.01)
+
+        ## OpenCV "model" answer
+        #     term_crit = ( cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 1 )
+        #     ret, track_window = cv2.meanShift(dst,track_window,term_crit)
+        x, y, w, h = track_window
+        bboxes.append((x, y, w, h))
+    # ani = animated_bbox(frames, bboxes)
+    # HTML(ani.to_html5_video())
+
+
+if __name__ == '__main__':
+    print("starting")
+    start = time.time()
+    mean_shift_test()
+    print("done: {:.3f}s".format(time.time() - start))

@@ -1,12 +1,12 @@
 """ CS4243 Lab 4: Tracking
 Please read accompanying Jupyter notebook (lab4.ipynb) and PDF (lab4.pdf) for instructions.
 """
+from math import floor, sqrt
+
 import cv2
 import numpy as np
 import random
-
-from time import time
-
+from scipy import ndimage
 
 # Part 1 
 
@@ -26,19 +26,49 @@ def meanShift(dst, track_window, max_iter=100,stop_thresh=1):
     """
 
     completed_iterations = 0
-    
+
     """ YOUR CODE STARTS HERE """
+    H, W = dst.shape
+    while completed_iterations < max_iter:
+        completed_iterations += 1
+
+        # calculate centroid
+        x,y,w,h = track_window
+        roi = dst[y:y+h,x:x+w]
+        y2, x2 = ndimage.center_of_mass(roi)
+        # for rare cases when tracking window is all 0
+        if np.isnan(x2):
+            return track_window
+
+        ###
+        # calculate new coordinates for tracking window
+        # we subtract by w/2 and h/2 because the x2 and y2 are the new centroid, and we
+        # want to set the x2 and y2 to the top left corner of the window such that the centroid is
+        # in the center of the window
+        # also clamp coordinates to constrain window within image
+        ###
+        x2 = np.clip(floor(x2 - w/2) + x, 0, W-w)
+        y2 = np.clip(floor(y2 - h/2) + y, 0, H-y)
+
+        # calculate shifted amt
+        delta = sqrt((x2-x)**2 + (y2-y)**2)
+        # print("sum: {}, x: {} -> {}, y: {} -> {}, d: {}".format(np.sum(roi), x, x2, y, y2, delta))
+
+        # shift tracking window
+        track_window = (x2,y2,w,h)
+
+        if delta < stop_thresh:
+            return track_window
 
 
-    
 
     """ YOUR CODE ENDS HERE """
-    
+
     return track_window
-    
-    
-    
-        
+
+
+
+
 
 def IoU(bbox1, bbox2):
     """ Compute IoU of two bounding boxes.
@@ -58,7 +88,7 @@ def IoU(bbox1, bbox2):
     """ YOUR CODE STARTS HERE """
 
 
-    
+
 
     """ YOUR CODE ENDS HERE """
 
@@ -85,7 +115,7 @@ def lucas_kanade(img1, img2, keypoints, window_size=9):
         - You may use np.linalg.inv to compute inverse matrix.
     """
     assert window_size % 2 == 1, "window_size must be an odd number"
-    
+
     flow_vectors = []
     w = window_size // 2
 
@@ -105,7 +135,7 @@ def lucas_kanade(img1, img2, keypoints, window_size=9):
         """ YOUR CODE STARTS HERE """
 
 
-    
+
 
         """ YOUR CODE ENDS HERE """
 
@@ -131,7 +161,7 @@ def compute_error(patch1, patch2):
     """ YOUR CODE STARTS HERE """
 
 
-    
+
 
     """ YOUR CODE ENDS HERE """
 
@@ -169,27 +199,27 @@ def iterative_lucas_kanade(img1, img2, keypoints,
 
     flow_vectors = []
     w = window_size // 2
-    
-   
+
+
     # Compute spatial gradients
     Iy, Ix = np.gradient(img1)
 
     for y, x, gy, gx in np.hstack((keypoints, g)):
         v = np.zeros(2) # Initialize flow vector as zero vector
         y1 = int(round(y)); x1 = int(round(x))
-        
+
         """ YOUR CODE STARTS HERE """
 
 
-    
+
 
         """ YOUR CODE ENDS HERE """
 
         vx, vy = v
         flow_vectors.append([vy, vx])
-        
+
     return np.array(flow_vectors)
-        
+
 
 def pyramid_lucas_kanade(img1, img2, keypoints,
                          window_size=9, num_iters=5,
@@ -225,7 +255,7 @@ def pyramid_lucas_kanade(img1, img2, keypoints,
     """ YOUR CODE STARTS HERE """
 
 
-    
+
 
     """ YOUR CODE ENDS HERE """
 
@@ -273,7 +303,7 @@ def load_frames_rgb(imgs_dir):
     return frames
 
 def load_frames_as_float_gray(imgs_dir):
-    frames = [img_as_float(imread(os.path.join(imgs_dir, frame), 
+    frames = [img_as_float(imread(os.path.join(imgs_dir, frame),
                                                as_gray=True)) \
               for frame in sorted(os.listdir(imgs_dir))]
     return frames
@@ -282,7 +312,7 @@ def load_bboxes(gt_path):
     bboxes = []
     with open(gt_path) as f:
         for line in f:
-          
+
             x, y, w, h = line.split(',')
             #x, y, w, h = line.split()
             bboxes.append((int(x), int(y), int(w), int(h)))
