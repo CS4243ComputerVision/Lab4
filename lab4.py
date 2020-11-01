@@ -86,10 +86,20 @@ def IoU(bbox1, bbox2):
     score = 0
 
     """ YOUR CODE STARTS HERE """
+    # intersection box
 
+    left = max(x1, x2)
+    right = min(x1+w1, x2+w2)
+    top = max(y1, y2)
+    bot = min(y1+h1, y2+h2)
+    if left > right or top > bot:
+        return 0
+    inter_area = (right - left) * (bot - top)
 
+    union_area = w1 * h1 + w2 * h2 - inter_area
 
-
+    # print("I: {}, U: {}".format(inter_area, union_area))
+    score = inter_area/union_area
     """ YOUR CODE ENDS HERE """
 
     return score
