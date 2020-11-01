@@ -1,3 +1,5 @@
+from skimage.feature import corner_harris, corner_peaks
+
 from lab4 import *
 import cv2
 import numpy as np
@@ -59,8 +61,95 @@ def mean_shift_test():
     # HTML(ani.to_html5_video())
 
 
+def lucas_kanade_test():
+    # load frames
+    path = "TeaCan"
+    frames_rgb = load_frames_rgb(path)
+    frames = load_frames_as_float_gray(path)
+
+    # Detect keypoints to track in first frame
+    keypoints = corner_peaks(corner_harris(frames[0]),
+                             exclude_border=5,
+                             threshold_rel=0.01)
+
+    flow_vectors = lucas_kanade(frames[0], frames[1], keypoints, window_size=5)
+
+    # Plot flow vectors
+    plt.figure(figsize=(15, 12))
+    plt.imshow(frames[0], cmap="gray")
+    plt.axis('off')
+    plt.title('Optical Flow Vectors')
+
+    for y, x, vy, vx in np.hstack((keypoints, flow_vectors)):
+        plt.arrow(x, y, vx, vy, head_width=3, head_length=3, color='b')
+
+def compute_error_test():
+    path = "TeaCan"
+    frames_rgb = load_frames_rgb(path)
+    frames = load_frames_as_float_gray(path)
+
+    # Detect keypoints to track in the first frame
+    keypoints = corner_peaks(corner_harris(frames[0]),
+                             exclude_border=5,
+                             threshold_rel=0.01)
+
+    trajs = track_features(frames, keypoints,
+                           error_thresh=1.5,
+                           optflow_fn=lucas_kanade,
+                           window_size=5)
+
+
+def iterative_lucas_kanade_test():
+    # load frames
+    path = "TeaCan"
+    frames_rgb = load_frames_rgb(path)
+    frames = load_frames_as_float_gray(path)
+
+    # Detect keypoints to track in first frame
+    keypoints = corner_peaks(corner_harris(frames[0]),
+                             exclude_border=5,
+                             threshold_rel=0.01)
+
+    flow_vectors = iterative_lucas_kanade(frames[0], frames[1], keypoints, window_size=5)
+
+
+def pyramid_lucas_kanade_test():
+    # load frames
+    path = "TeaCan"
+    frames_rgb = load_frames_rgb(path)
+    frames = load_frames_as_float_gray(path)
+
+    # Detect keypoints to track in first frame
+    keypoints = corner_peaks(corner_harris(frames[0]),
+                             exclude_border=5,
+                             threshold_rel=0.01)
+
+    # Lucas-Kanade method for optical flow
+    flow_vectors = pyramid_lucas_kanade(frames[0], frames[1], keypoints)
+
+def pyrLKtrack_test():
+    # load frames
+    path = "TeaCan"
+    frames_rgb = load_frames_rgb(path)
+    frames = load_frames_as_float_gray(path)
+
+    keypoints = corner_peaks(corner_harris(frames[0]),
+                             exclude_border=5,
+                             threshold_rel=0.01)
+
+    trajs = track_features(frames, keypoints,
+                           error_thresh=1.5,
+                           optflow_fn=pyramid_lucas_kanade,
+                           window_size=5)
+
+
 if __name__ == '__main__':
     print("starting")
     start = time.time()
-    mean_shift_test()
+    # mean_shift_test()
+    # lucas_kanade_test()
+    # compute_error_test()
+    # iterative_lucas_kanade_test()
+    # pyramid_lucas_kanade_test()
+    pyrLKtrack_test()
     print("done: {:.3f}s".format(time.time() - start))

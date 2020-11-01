@@ -8,7 +8,7 @@ import numpy as np
 import random
 from scipy import ndimage
 
-# Part 1 
+# Part 1
 
 def meanShift(dst, track_window, max_iter=100,stop_thresh=1):
     """Use mean shift algorithm to find an object on a back projection image.
@@ -143,10 +143,12 @@ def lucas_kanade(img1, img2, keypoints, window_size=9):
         y, x = int(round(y)), int(round(x))
 
         """ YOUR CODE STARTS HERE """
-
-
-
-
+        pIx = Ix[y-w:y+w+1, x-w:x+w+1].reshape(-1)
+        pIy = Iy[y-w:y+w+1, x-w:x+w+1].reshape(-1)
+        pIt = It[y-w:y+w+1, x-w:x+w+1].reshape(-1)
+        A = np.vstack((pIx, pIy)).T
+        uv = np.linalg.lstsq(A, -pIt, rcond=None)
+        flow_vectors.append((uv[0][1], uv[0][0]))
         """ YOUR CODE ENDS HERE """
 
     flow_vectors = np.array(flow_vectors)
@@ -169,7 +171,9 @@ def compute_error(patch1, patch2):
     error = 0
 
     """ YOUR CODE STARTS HERE """
-
+    error = np.linalg.norm(patch1-patch2)
+    if error > 1.5:
+        print(error)
 
 
 
@@ -219,8 +223,21 @@ def iterative_lucas_kanade(img1, img2, keypoints,
         y1 = int(round(y)); x1 = int(round(x))
 
         """ YOUR CODE STARTS HERE """
+        pIx = patch(Ix, x1, y1, w)
+        pIy = patch(Iy, x1, y1, w)
+        Ixx = np.sum(pIx ** 2)
+        Iyy = np.sum(pIy ** 2)
+        Ixy = np.sum(pIx * pIy)
+        G = np.array([Ixx, Ixy, Ixy, Iyy]).reshape((2, 2))
+        pI = patch(img1, x1, y1, w)
 
+        for i in range(num_iters):
+            pJ = patch(img2, x1 + gx + v[0], y1 + gy + v[1], w)
+            pIt = pI-pJ
+            bk = np.array([np.sum(pIx * pIt), np.sum(pIy * pIt)])
+            vk = np.linalg.inv(G) @ bk
 
+            v += vk
 
 
         """ YOUR CODE ENDS HERE """
@@ -261,11 +278,14 @@ def pyramid_lucas_kanade(img1, img2, keypoints,
 
     # Initialize pyramidal guess
     g = np.zeros(keypoints.shape)
+    d = np.zeros(keypoints.shape)
 
     """ YOUR CODE STARTS HERE """
 
-
-
+    for L in range(level - 1, -1, -1):
+        s = scale**L
+        g = scale * (d + g)
+        d = iterative_lucas_kanade(pyramid1[L], pyramid2[L], keypoints/s, window_size, num_iters, g)
 
     """ YOUR CODE ENDS HERE """
 
@@ -276,7 +296,8 @@ def pyramid_lucas_kanade(img1, img2, keypoints,
 
 
 
-
+def patch(arr, x, y, w):
+    return arr[round(y-w):round(y+w) + 1,round(x-w):round(x+w) + 1].reshape(-1)
 
 
 
@@ -428,8 +449,8 @@ def track_features(frames, keypoints,
                 continue
 
             # Compute error between patches in image I and J
-            patchI = I[yi-w:yi+w, xi-w:xi+w]
-            patchJ = J[yj-w:yj+w, xj-w:xj+w]
+            patchI = I[yi-w:yi+w+1, xi-w:xi+w+1]
+            patchJ = J[yj-w:yj+w+1, xj-w:xj+w+1]
             error = compute_error(patchI, patchJ)
             if error > error_thresh:
                 continue
