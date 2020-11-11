@@ -172,11 +172,6 @@ def compute_error(patch1, patch2):
 
     """ YOUR CODE STARTS HERE """
     error = np.linalg.norm(patch1-patch2)
-    if error > 1.5:
-        print(error)
-
-
-
     """ YOUR CODE ENDS HERE """
 
     return error
